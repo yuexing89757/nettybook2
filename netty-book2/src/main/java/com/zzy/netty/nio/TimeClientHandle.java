@@ -48,6 +48,7 @@ public class TimeClientHandle implements Runnable {
 		}
 		while (!stop) {
 			try {
+				//休眠时间1s
 				selector.select(1000);
 				Set<SelectionKey> selectedKeys = selector.selectedKeys();
 				Iterator<SelectionKey> it = selectedKeys.iterator();
