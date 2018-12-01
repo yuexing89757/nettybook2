@@ -83,10 +83,14 @@ public class TimeClientHandle implements Runnable {
 	}
 
 	private void doConnect() throws IOException {
-		// 如果直接连接成功，则注册到多路复用器上，发送请求消息，读应答
+		 //连接server
 		if (socketChannel.connect(new InetSocketAddress(host, port))) {
+			//1.注册此通道
 			socketChannel.register(selector, SelectionKey.OP_READ);
+			//2.向服务端发送请求
 			doWrite(socketChannel);
+			
+		//如果连接不成功,则注册连接事件key	
 		} else
 			socketChannel.register(selector, SelectionKey.OP_CONNECT);
 	}
@@ -104,8 +108,10 @@ public class TimeClientHandle implements Runnable {
 	private void handleInput(SelectionKey key) throws IOException {
 
 		if (key.isValid()) {
-			// 判断是否连接成功
+			
 			SocketChannel sc = (SocketChannel) key.channel();
+			
+			//如果连接成功, 注册可读事件监听, 写查询时间数据到server
 			if (key.isConnectable()) {
 				if (sc.finishConnect()) {
 					sc.register(selector, SelectionKey.OP_READ);
@@ -113,6 +119,8 @@ public class TimeClientHandle implements Runnable {
 				} else
 					System.exit(1);// 连接失败，进程退出
 			}
+			
+			//读取 服务端返回的数据
 			if (key.isReadable()) {
 				ByteBuffer readBuffer = ByteBuffer.allocate(1024);
 				int readBytes = sc.read(readBuffer);
@@ -121,8 +129,10 @@ public class TimeClientHandle implements Runnable {
 					byte[] bytes = new byte[readBuffer.remaining()];
 					readBuffer.get(bytes);
 					String body = new String(bytes, "UTF-8");
-					System.out.println("Now is : " + body);
-					this.stop = true;
+					System.out.println("客户端接受server返回数据 : " + body);
+					//再查一次时间
+					doWrite(sc);
+					//this.stop = true;
 				} else if (readBytes < 0) {
 					// 对端链路关闭
 					key.cancel();
