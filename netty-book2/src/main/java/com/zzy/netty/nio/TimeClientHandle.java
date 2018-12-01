@@ -40,6 +40,7 @@ public class TimeClientHandle implements Runnable {
 	@Override
 	public void run() {
 		try {
+			// 建议与服务端的链接
 			doConnect();
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -55,6 +56,7 @@ public class TimeClientHandle implements Runnable {
 					key = it.next();
 					it.remove();
 					try {
+						// 处理接收数据和发送请求数据
 						handleInput(key);
 					} catch (Exception e) {
 						if (key != null) {
@@ -78,6 +80,25 @@ public class TimeClientHandle implements Runnable {
 				e.printStackTrace();
 			}
 
+	}
+
+	private void doConnect() throws IOException {
+		// 如果直接连接成功，则注册到多路复用器上，发送请求消息，读应答
+		if (socketChannel.connect(new InetSocketAddress(host, port))) {
+			socketChannel.register(selector, SelectionKey.OP_READ);
+			doWrite(socketChannel);
+		} else
+			socketChannel.register(selector, SelectionKey.OP_CONNECT);
+	}
+
+	private void doWrite(SocketChannel sc) throws IOException {
+		byte[] req = "QUERY TIME".getBytes();
+		ByteBuffer writeBuffer = ByteBuffer.allocate(req.length);
+		writeBuffer.put(req);
+		writeBuffer.flip();
+		sc.write(writeBuffer);
+		if (!writeBuffer.hasRemaining())
+			System.out.println("Send query msg to server succeed.");
 	}
 
 	private void handleInput(SelectionKey key) throws IOException {
@@ -111,25 +132,6 @@ public class TimeClientHandle implements Runnable {
 			}
 		}
 
-	}
-
-	private void doConnect() throws IOException {
-		// 如果直接连接成功，则注册到多路复用器上，发送请求消息，读应答
-		if (socketChannel.connect(new InetSocketAddress(host, port))) {
-			socketChannel.register(selector, SelectionKey.OP_READ);
-			doWrite(socketChannel);
-		} else
-			socketChannel.register(selector, SelectionKey.OP_CONNECT);
-	}
-
-	private void doWrite(SocketChannel sc) throws IOException {
-		byte[] req = "QUERY TIME ORDER".getBytes();
-		ByteBuffer writeBuffer = ByteBuffer.allocate(req.length);
-		writeBuffer.put(req);
-		writeBuffer.flip();
-		sc.write(writeBuffer);
-		if (!writeBuffer.hasRemaining())
-			System.out.println("Send order 2 server succeed.");
 	}
 
 }
